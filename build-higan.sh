@@ -12,48 +12,61 @@
 time_start=$(date +%s)
 time_stamp_start=(`date +"%T"`)
 
+prepare()
+{
+  cd "${srcdir}/higan"
+  #Append user's CXXFLAGS and LDFLAGS
+  sed -i "/^flags   += -I. -O3 -fomit-frame-pointer/ s/$/ -std=gnu++11 $CXXFLAGS/" Makefile
+  sed -i "/^link    +=/ s/$/ $LDFLAGS/" Makefile
+}
 
-#################################################
-# Prerequisites
-#################################################
+build()
+{
+  
+  # libananke
+  cd "${srcdir}/higan"
+  make compiler=g++ platform=linux flags="$CXXFLAGS -I.. -fomit-frame-pointer -std=gnu++11" -C ananke
+  
+  # higan
+  cd "${srcdir}/higan"
+  make clean
+  for _profile in ${_profiles}; do
+  make compiler=g++ platform=linux target=ethos profile=${_profile}
+  mv out/higan{,-${_profile}}
+  done
 
-# Handled by desktop-software.sh
-# Software list: cfgs/ue4.txt
+}
 
-######################
-# Clang notice:
-######################
+package()
+{
 
-# per this, we will attempt using setup.sh instead of ue4.txt first
+# Install higan
+  cd "${srcdir}/higan"
+   
+  # Common files
+  install -dm 755 "${pkgdir}"/usr/{bin,lib,share/{applications,pixmaps,higan/Video\ Shaders}}
+  install -m 755 "${srcdir}"/Higan "${pkgdir}"/usr/bin/higan
+  install -m 644 "${srcdir}"/higan/data/higan.desktop "${pkgdir}"/usr/share/applications/higan.desktop
+  install -m 644 "${srcdir}"/higan/data/higan.png "${pkgdir}"/usr/share/pixmaps/higan.png
+  install -m 644 "${srcdir}"/higan/data/higan.ico "${pkgdir}"/usr/share/pixmaps/higan.ico
+  cp -dr --no-preserve=ownership profile/* data/cheats.bml "${pkgdir}"/usr/share/higan/
+  cp -dr --no-preserve=ownership shaders/*.shader "${pkgdir}"/usr/share/higan/Video\ Shaders/
 
-#################################################
-# Initial setup
-#################################################
+  # libananke
+  install -m 644 "${srcdir}"/higan/ananke/libananke.so "${pkgdir}"/usr/lib/libananke.so.1
+  cd "${pkgdir}"/usr/lib/
+  ln -s libananke.so.1 libananke.so
+  
+  # higan
+  cd "${srcdir}/higan"
+  for _profile in ${_profiles}; do
+    install -m 755 {out,"${pkgdir}"/usr/bin}/higan-${_profile}
+  done
 
-
-#################################################
-# Build UE4
-#################################################
-
-############################
-# proceed to global build:
-############################
-
-############################
-# Begin UE4 build eval
-############################
-
-#################################################
-# Post install configuration
-#################################################
-
-# TODO
-
-#################################################
-# Cleanup
-#################################################
-
-# clean up dirs
+  # Fix permissions
+  find "${pkgdir}"/usr/share/higan/ -type d -exec chmod 755 {} +
+  find "${pkgdir}"/usr/share/higan/ -type f -exec chmod 644 {} +
+}
 
 # note time ended
 time_end=$(date +%s)
@@ -64,3 +77,8 @@ runtime=$(echo "scale=2; ($time_end-$time_start) / 60 " | bc)
 echo -e "\nTime started: ${time_stamp_start}"
 echo -e "Time started: ${time_stamp_end}"
 echo -e "Total Runtime (minutes): $runtime\n"
+
+# Start functions
+prepare
+build
+package
