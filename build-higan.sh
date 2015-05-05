@@ -13,6 +13,15 @@ time_start=$(date +%s)
 time_stamp_start=(`date +"%T"`)
 srcdir=$(pwd)
 
+# try building from alternate repo first
+git clone git://gitorious.org/bsnes/bsnes.git 
+srcdir="bsnes"
+
+pkgver() {
+  cd "higan"
+  echo 094.$( git describe --always | sed 's#-#_#g;s#v##' )
+}
+
 prepare()
 {
   cd "{$srcdir}"
@@ -80,6 +89,7 @@ echo -e "Time started: ${time_stamp_end}"
 echo -e "Total Runtime (minutes): $runtime\n"
 
 # Start functions
+pkgver
 prepare
 build
 package
