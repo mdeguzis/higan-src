@@ -11,10 +11,11 @@
 
 time_start=$(date +%s)
 time_stamp_start=(`date +"%T"`)
+srcdir=$(pwd)
 
 prepare()
 {
-  cd "${srcdir}/higan"
+  cd "{$srcdir}"
   #Append user's CXXFLAGS and LDFLAGS
   sed -i "/^flags   += -I. -O3 -fomit-frame-pointer/ s/$/ -std=gnu++11 $CXXFLAGS/" Makefile
   sed -i "/^link    +=/ s/$/ $LDFLAGS/" Makefile
